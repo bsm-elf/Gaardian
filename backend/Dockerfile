@@ -1,6 +1,7 @@
 FROM python:3.11-slim
 
 RUN addgroup --system arrguardian && adduser --system --ingroup arrguardian --uid 568 arrguardian
+RUN mkdir -p /app/data && chown -R arrguardian:arrguardian /app/data
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

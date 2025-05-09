@@ -1,1 +1,32 @@
-{"dry_run": false, "enable_removal": false, "enable_repair": false, "log_level": "info", "auto_import_manual": true, "auto_handle_custom_format": true, "auto_remove_unparsable": true, "auto_remove_qbt_error": true}
+{
+    "dry_run": false,
+    "enable_removal": false,
+    "enable_repair": false,
+    "log_level": "info",
+    "auto_import_manual": true,
+    "auto_handle_custom_format": true,
+    "auto_remove_unparsable": true,
+    "auto_remove_qbt_error": true,
+    "arr_instances": [
+        {
+            "name": "Sonarr",
+            "url": "http://sonarr:8989",
+            "api_key": "YOUR_SONARR_API_KEY"
+        },
+        {
+            "name": "Sonarr4K",
+            "url": "http://sonarr4k:8989",
+            "api_key": "YOUR_SONARR4K_API_KEY"
+        },
+        {
+            "name": "Radarr",
+            "url": "http://radarr:7878",
+            "api_key": "YOUR_RADARR_API_KEY"
+        },
+        {
+            "name": "Radarr4K",
+            "url": "http://radarr4k:7878",
+            "api_key": "YOUR_RADARR4K_API_KEY"
+        }
+    ]
+}

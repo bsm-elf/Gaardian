@@ -18,21 +18,13 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
-# Configuration from Environment Variables
-SONARR_URL = os.getenv('SONARR_URL', 'http://sonarr:8989')
-SONARR4K_URL = os.getenv('SONARR4K_URL', 'http://sonarr4k:8989')
-RADARR_URL = os.getenv('RADARR_URL', 'http://radarr:7878')
-RADARR4K_URL = os.getenv('RADARR4K_URL', 'http://radarr4k:7878')
-QBITTORRENT_HOST = os.getenv('QBITTORRENT_HOST', 'qBittorrent')
-QBITTORRENT_PORT = os.getenv('QBITTORRENT_PORT', '8080')
-
 # Settings file location
 SETTINGS_FILE = '/data/settings.json'
 
 # Save settings to file
 def save_settings(new_settings):
     with open(SETTINGS_FILE, 'w') as f:
-        json.dump(new_settings, f)
+        json.dump(new_settings, f, indent=4)
 
 # Load or initialize settings
 def load_settings():
@@ -43,7 +35,13 @@ def load_settings():
         'auto_handle_custom_format': True,
         'auto_remove_unparsable': True,
         'auto_remove_qbt_error': True,
-        'log_level': 'info'
+        'log_level': 'info',
+        'arr_instances': [
+            {'name': 'Sonarr', 'url': 'http://sonarr:8989', 'api_key': 'YOUR_SONARR_API_KEY'},
+            {'name': 'Sonarr4K', 'url': 'http://sonarr4k:8989', 'api_key': 'YOUR_SONARR4K_API_KEY'},
+            {'name': 'Radarr', 'url': 'http://radarr:7878', 'api_key': 'YOUR_RADARR_API_KEY'},
+            {'name': 'Radarr4K', 'url': 'http://radarr4k:7878', 'api_key': 'YOUR_RADARR4K_API_KEY'}
+        ]
     }
     try:
         if not os.path.exists(SETTINGS_FILE):
@@ -88,14 +86,27 @@ class QueueItem(BaseModel):
     message: str
 
 # Fetching Queue Items from Sonarr and Radarr
+def get_queue_from_arr(instance):
+    try:
+        response = requests.get(
+            f"{instance['url']}/api/v3/queue",
+            headers={"X-Api-Key": instance["api_key"]}
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        print(f"Error fetching queue from {instance['name']}: {e}")
+        return []
+
 @app.get('/api/queue')
 def get_queue():
-    try:
-        sonarr_queue = requests.get(f'{SONARR_URL}/api/v3/queue').json()
-        radarr_queue = requests.get(f'{RADARR_URL}/api/v3/queue').json()
-        return {'sonarr_queue': sonarr_queue, 'radarr_queue': radarr_queue}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    all_queue = []
+    for instance in settings.get('arr_instances', []):
+        queue = get_queue_from_arr(instance)
+        for item in queue:
+            item['source'] = instance['name']
+            all_queue.append(item)
+    return all_queue
 
 # Removing Problematic Item from qBittorrent
 @app.post('/api/queue/remove')
@@ -114,7 +125,9 @@ def remove_item(item: QueueItem):
         if "qBittorrent is reporting an error" in item.message and settings.get('auto_remove_qbt_error', False):
             return {'message': f'Removed qBittorrent error item: {item.title}'}
 
-        response = requests.delete(f'http://{QBITTORRENT_HOST}:{QBITTORRENT_PORT}/api/v2/torrents/delete?hash={item.title}')
+        response = requests.delete(
+            f"http://{os.getenv('QBITTORRENT_HOST', 'qBittorrent')}:{os.getenv('QBITTORRENT_PORT', '8080')}/api/v2/torrents/delete?hash={item.title}"
+        )
         if response.status_code == 200:
             return {'message': f'Removed item: {item.title}'}
         else:
