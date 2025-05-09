@@ -1,0 +1,1 @@
+{"dry_run": false, "enable_removal": false, "enable_repair": false, "log_level": "info", "auto_import_manual": true, "auto_handle_custom_format": true, "auto_remove_unparsable": true, "auto_remove_qbt_error": true}
