@@ -1,7 +1,7 @@
 
 # Gaardian
 
-![Gaardian Logo](https://github.com/bsm-elf/ArrGuardian/raw/main/frontend/src/Gaardian.png)
+![Gaardian Logo](https://github.com/bsm-elf/Gaardian/raw/main/frontend/src/Gaardian.png)
 
 Gaardian is an automated queue management tool for Sonarr and Radarr instances. It monitors *Arr queues to detect stalled or problematic items and can automatically clean up these items, improving the efficiency of your media server.
 
@@ -22,8 +22,8 @@ Gaardian is an automated queue management tool for Sonarr and Radarr instances. 
 ### Docker Compose Setup
 1. Clone the repository:
    ```bash
-   git clone https://github.com/bsm-elf/ArrGuardian.git
-   cd ArrGuardian
+   git clone https://github.com/bsm-elf/Gaardian.git
+   cd Gaardian
    ```
 2. Update the API keys and instance URLs in `settings.json`:
    ```json
