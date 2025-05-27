@@ -1,7 +1,8 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+import os
 import json
 import requests
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -9,10 +10,10 @@ app = FastAPI()
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all HTTP methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 SETTINGS_FILE = "/app/data/settings.json"
@@ -31,6 +32,13 @@ def load_settings():
     try:
         with open(SETTINGS_FILE, "r") as f:
             settings = json.load(f)
+
+        # Override URLs with environment variables if set
+        for instance in settings.get("arr_instances", []):
+            env_url = os.getenv(f"{instance['name'].upper()}_URL")
+            if env_url:
+                instance["url"] = env_url
+
     except (FileNotFoundError, json.JSONDecodeError):
         settings = {
             "dry_run": False,
@@ -47,12 +55,7 @@ def load_settings():
                 {"name": "Radarr4K", "url": "http://radarr4k:7878", "api_key": "YOUR_RADARR4K_API_KEY"}
             ]
         }
-        save_settings(settings)
     return settings
-
-def save_settings(settings):
-    with open(SETTINGS_FILE, "w") as f:
-        json.dump(settings, f, indent=4)
 
 settings = load_settings()
 
@@ -71,6 +74,10 @@ def update_settings(new_settings: Settings):
     save_settings(settings)
     return {"message": "Settings updated"}
 
+def save_settings(settings):
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(settings, f, indent=4)
+
 @app.get("/api/queue")
 def get_queue():
     all_queue = []
@@ -78,7 +85,18 @@ def get_queue():
         try:
             response = requests.get(f"{instance['url']}/api/v3/queue", headers={"X-Api-Key": instance["api_key"]})
             response.raise_for_status()
-            all_queue.extend(response.json())
+            queue_items = response.json()
+            all_queue.extend(queue_items)
         except requests.RequestException as e:
             print(f"Error fetching queue from {instance['name']}: {e}")
-    return all_queue
+            return {"error": f"Error fetching queue from {instance['name']}"}
+    return {"queue": all_queue}
+
+@app.get("/api/logs")
+def get_logs():
+    try:
+        with open("/app/data/arrguardian.log", "r") as f:
+            logs = f.readlines()
+        return {"logs": logs}
+    except FileNotFoundError:
+        return {"error": "Log file not found"}
